@@ -1,0 +1,506 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Panda Code</title>
+    <meta
+      name="description"
+      content="A local-first macOS app for running Claude Code and Codex sessions, with an optional self-hosted phone companion."
+    />
+    <style>
+      :root {
+        --bg: #121315;
+        --panel: #1b1d21;
+        --panel-strong: #23262b;
+        --panel-soft: #181a1e;
+        --line: #30343b;
+        --line-soft: #262a31;
+        --text: #f0f2f4;
+        --muted: #a3abb6;
+        --subtle: #727b88;
+        --brass: #d0a85d;
+        --brass-solid: #a97f2e;
+        --brass-wash: rgba(208, 168, 93, 0.13);
+        --brass-line: rgba(208, 168, 93, 0.34);
+        --run: #66c98b;
+        --danger: #ef6a7a;
+        --mono: "SFMono-Regular", "JetBrains Mono", "Fira Code", Menlo, Consolas, monospace;
+        color-scheme: dark;
+      }
+
+      * {
+        box-sizing: border-box;
+      }
+
+      html {
+        scroll-behavior: smooth;
+      }
+
+      body {
+        margin: 0;
+        background: var(--bg);
+        color: var(--text);
+        font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+        -webkit-font-smoothing: antialiased;
+        text-rendering: optimizeLegibility;
+      }
+
+      a {
+        color: inherit;
+      }
+
+      .wrap {
+        width: min(1160px, calc(100% - 40px));
+        margin: 0 auto;
+      }
+
+      .nav {
+        position: sticky;
+        top: 0;
+        z-index: 10;
+        border-bottom: 1px solid var(--line-soft);
+        background: rgba(18, 19, 21, 0.86);
+        backdrop-filter: blur(16px);
+      }
+
+      .nav-inner {
+        min-height: 64px;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 18px;
+      }
+
+      .brand {
+        display: inline-flex;
+        align-items: center;
+        gap: 10px;
+        font-weight: 720;
+        letter-spacing: 0;
+        text-decoration: none;
+      }
+
+      .brand-mark {
+        width: 32px;
+        height: 32px;
+        border-radius: 9px;
+        background: var(--brass-solid);
+        display: grid;
+        place-items: center;
+        color: #fff6e2;
+        font-weight: 800;
+      }
+
+      .brand span span {
+        color: var(--brass);
+      }
+
+      .nav-links {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        flex-wrap: wrap;
+        justify-content: flex-end;
+      }
+
+      .nav-links a,
+      .pill {
+        min-height: 34px;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        border: 1px solid var(--line);
+        border-radius: 999px;
+        background: var(--panel-soft);
+        color: var(--muted);
+        padding: 0 12px;
+        font-size: 13px;
+        font-weight: 640;
+        text-decoration: none;
+      }
+
+      .nav-links a:hover,
+      .pill:hover {
+        color: var(--text);
+        border-color: var(--brass-line);
+      }
+
+      .hero {
+        padding: 76px 0 28px;
+      }
+
+      .hero-grid {
+        display: grid;
+        grid-template-columns: minmax(0, 0.92fr) minmax(380px, 1.08fr);
+        gap: 42px;
+        align-items: center;
+      }
+
+      .kicker {
+        margin: 0 0 14px;
+        font-family: var(--mono);
+        color: var(--brass);
+        font-size: 12px;
+        letter-spacing: 0.14em;
+        text-transform: uppercase;
+      }
+
+      h1 {
+        margin: 0;
+        font-size: clamp(44px, 7vw, 84px);
+        line-height: 0.96;
+        letter-spacing: 0;
+        font-weight: 760;
+      }
+
+      .lede {
+        margin: 22px 0 0;
+        max-width: 62ch;
+        color: var(--muted);
+        font-size: 17px;
+        line-height: 1.68;
+      }
+
+      .actions {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 10px;
+        margin-top: 30px;
+      }
+
+      .btn {
+        min-height: 44px;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        border-radius: 10px;
+        padding: 0 16px;
+        border: 1px solid transparent;
+        text-decoration: none;
+        font-weight: 700;
+        font-size: 14px;
+      }
+
+      .btn.primary {
+        background: var(--brass-solid);
+        border-color: var(--brass-line);
+        color: #fff6e2;
+      }
+
+      .btn.secondary {
+        background: var(--panel-strong);
+        border-color: var(--line);
+        color: var(--text);
+      }
+
+      .shot-frame {
+        border: 1px solid var(--line);
+        border-radius: 18px;
+        overflow: hidden;
+        background: #0e0f11;
+        box-shadow: 0 30px 80px rgba(0, 0, 0, 0.36), inset 0 1px 0 rgba(255, 255, 255, 0.04);
+      }
+
+      .shot-frame img {
+        width: 100%;
+        display: block;
+      }
+
+      .terminal {
+        margin-top: 24px;
+        border: 1px solid var(--line);
+        border-radius: 14px;
+        background: var(--panel);
+        overflow: hidden;
+      }
+
+      .terminal-head {
+        display: flex;
+        align-items: center;
+        gap: 7px;
+        height: 38px;
+        padding: 0 13px;
+        border-bottom: 1px solid var(--line-soft);
+        color: var(--subtle);
+        font-family: var(--mono);
+        font-size: 12px;
+      }
+
+      .dot {
+        width: 9px;
+        height: 9px;
+        border-radius: 999px;
+        background: var(--line);
+      }
+
+      pre {
+        margin: 0;
+        padding: 16px;
+        overflow-x: auto;
+        color: var(--muted);
+        font-family: var(--mono);
+        font-size: 13px;
+        line-height: 1.7;
+      }
+
+      pre b {
+        color: var(--text);
+        font-weight: 650;
+      }
+
+      section {
+        padding: 58px 0;
+        border-top: 1px solid var(--line-soft);
+      }
+
+      h2 {
+        margin: 0;
+        font-size: 30px;
+        line-height: 1.18;
+        letter-spacing: 0;
+      }
+
+      .section-lede {
+        margin: 12px 0 0;
+        color: var(--muted);
+        max-width: 72ch;
+        line-height: 1.65;
+      }
+
+      .cards {
+        display: grid;
+        grid-template-columns: repeat(3, 1fr);
+        gap: 14px;
+        margin-top: 24px;
+      }
+
+      .card {
+        border: 1px solid var(--line);
+        border-radius: 8px;
+        background: var(--panel);
+        background-image: linear-gradient(180deg, rgba(255, 255, 255, 0.028), transparent 42%);
+        padding: 18px;
+      }
+
+      .card h3 {
+        margin: 0 0 9px;
+        font-size: 16px;
+      }
+
+      .card p {
+        margin: 0;
+        color: var(--muted);
+        line-height: 1.58;
+        font-size: 14px;
+      }
+
+      .split {
+        display: grid;
+        grid-template-columns: 0.9fr 1.1fr;
+        gap: 28px;
+        align-items: start;
+      }
+
+      .steps {
+        display: grid;
+        gap: 12px;
+        margin-top: 22px;
+      }
+
+      .step {
+        display: grid;
+        grid-template-columns: 34px minmax(0, 1fr);
+        gap: 13px;
+        align-items: start;
+      }
+
+      .step-num {
+        height: 34px;
+        border-radius: 8px;
+        display: grid;
+        place-items: center;
+        background: var(--brass-wash);
+        border: 1px solid var(--brass-line);
+        color: var(--brass);
+        font-family: var(--mono);
+        font-size: 12px;
+        font-weight: 800;
+      }
+
+      .step b {
+        display: block;
+        margin-bottom: 4px;
+      }
+
+      .step p {
+        margin: 0;
+        color: var(--muted);
+        line-height: 1.58;
+        font-size: 14px;
+      }
+
+      .footer {
+        padding: 34px 0 52px;
+        color: var(--subtle);
+        font-size: 13px;
+      }
+
+      @media (max-width: 900px) {
+        .hero-grid,
+        .split,
+        .cards {
+          grid-template-columns: 1fr;
+        }
+
+        .hero {
+          padding-top: 48px;
+        }
+
+        .nav-inner {
+          align-items: flex-start;
+          flex-direction: column;
+          padding: 14px 0;
+        }
+
+        .nav-links {
+          justify-content: flex-start;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <nav class="nav">
+      <div class="wrap nav-inner">
+        <a class="brand" href="#top" aria-label="Panda Code home">
+          <span class="brand-mark">P</span>
+          <span>Panda<span>Code</span></span>
+        </a>
+        <div class="nav-links" aria-label="Primary">
+          <a href="#install">Install</a>
+          <a href="#companion">Phone Companion</a>
+          <a href="self-hosting.html">Self-hosting</a>
+          <a href="https://github.com/PandaPDV/panda-code">GitHub</a>
+        </div>
+      </div>
+    </nav>
+
+    <main id="top">
+      <header class="hero">
+        <div class="wrap hero-grid">
+          <div>
+            <p class="kicker">Local-first agent workbench</p>
+            <h1>Keep Claude Code and Codex sessions alive on your Mac.</h1>
+            <p class="lede">
+              Panda Code is a macOS app for running coding-agent sessions as
+              persistent threads. The desktop app works entirely locally. When
+              you want phone control, pair it with a relay you host yourself.
+            </p>
+            <div class="actions">
+              <a class="btn primary" href="#install">Build from source</a>
+              <a class="btn secondary" href="https://github.com/PandaPDV/panda-code">View repository</a>
+            </div>
+            <div class="terminal" id="install">
+              <div class="terminal-head"><span class="dot"></span><span class="dot"></span><span class="dot"></span> install</div>
+              <pre><b>git clone https://github.com/PandaPDV/panda-code.git</b>
+<b>cd panda-code</b>
+<b>pnpm install</b>
+<b>pnpm --dir apps/desktop package:mac</b></pre>
+            </div>
+          </div>
+          <div class="shot-frame">
+            <img
+              src="assets/panda-code-design-system.png"
+              alt="Panda Code graphite and brass desktop design system preview"
+            />
+          </div>
+        </div>
+      </header>
+
+      <section>
+        <div class="wrap">
+          <h2>Desktop first. Server optional.</h2>
+          <p class="section-lede">
+            The normal path has no hosted account, no inbound ports, and no
+            project data uploaded by Panda Code. It runs your existing
+            <code>claude</code> and <code>codex</code> CLIs as external programs.
+          </p>
+          <div class="cards">
+            <article class="card">
+              <h3>Persistent threads</h3>
+              <p>Run several sessions at once, keep them alive, and jump straight to the one that needs attention.</p>
+            </article>
+            <article class="card">
+              <h3>Structured transcripts</h3>
+              <p>Tool calls, diffs, approvals, thinking blocks, and exports are rendered as readable conversation state.</p>
+            </article>
+            <article class="card">
+              <h3>Cost visibility</h3>
+              <p>Track token spend by session and over time without flattening the workflow into raw terminal output.</p>
+            </article>
+          </div>
+        </div>
+      </section>
+
+      <section id="companion">
+        <div class="wrap split">
+          <div>
+            <h2>Step away without handing your data to someone else's relay.</h2>
+            <p class="section-lede">
+              The optional Flutter companion talks to a Convex deployment you own.
+              Your Mac and phone exchange an encryption key through the pairing
+              QR code, and the relay carries ciphertext plus routing metadata.
+            </p>
+            <div class="steps">
+              <div class="step">
+                <span class="step-num">01</span>
+                <p><b>Create your relay.</b> Run Convex under your account and keep its URL local.</p>
+              </div>
+              <div class="step">
+                <span class="step-num">02</span>
+                <p><b>Build the desktop with the relay URL.</b> Leave it unset for local-only mode.</p>
+              </div>
+              <div class="step">
+                <span class="step-num">03</span>
+                <p><b>Pair from the phone.</b> The QR code carries the one-time code and encryption key.</p>
+              </div>
+            </div>
+            <div class="actions">
+              <a class="btn primary" href="self-hosting.html">Read self-hosting guide</a>
+              <a class="btn secondary" href="protocol.html">Read protocol</a>
+            </div>
+          </div>
+          <div class="shot-frame">
+            <img
+              src="assets/panda-code-mobile-screens.png"
+              alt="Panda Code mobile companion screens for sessions, approvals, and transcripts"
+            />
+          </div>
+        </div>
+      </section>
+
+      <section>
+        <div class="wrap">
+          <h2>For contributors and agents</h2>
+          <p class="section-lede">
+            The public repo includes explicit setup instructions for humans and
+            coding agents. Start with <a class="pill" href="https://github.com/PandaPDV/panda-code/blob/main/AGENTS.md">AGENTS.md</a>,
+            then run the checks for the surface you changed.
+          </p>
+          <div class="terminal">
+            <div class="terminal-head"><span class="dot"></span><span class="dot"></span><span class="dot"></span> checks</div>
+            <pre><b>pnpm typecheck</b>
+<b>pnpm test</b>
+<b>cd apps/mobile && flutter analyze && flutter test</b></pre>
+          </div>
+        </div>
+      </section>
+    </main>
+
+    <footer class="footer">
+      <div class="wrap">
+        Apache-2.0. Panda Code is independent and unaffiliated with Anthropic or OpenAI.
+      </div>
+    </footer>
+  </body>
+</html>
